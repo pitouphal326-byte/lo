@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ប្រព័ន្ធជូនដំណឹងហាត់សម និងសុំច្បាប់ - ក្លឹបសិល្បៈ</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Khmer -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:ital,wght@0,300..700;1,300..700&family=Moul&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="AC.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        artGold: '#D4AF37',
+                        artRed: '#991B1B',
+                        artBg: '#F8FAFC',
+                    },
+                    fontFamily: {
+                        khmer: ['Kantumruy Pro', 'sans-serif'],
+                        moul: ['Moul', 'serif'],
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col font-khmer">
+
+    <!-- Web Audio Synthesizer Engine -->
+    <script>
+        class SoundEffects {
+            constructor() {
+                this.audioCtx = null;
+                this.soundEnabled = true;
+            }
+
+            init() {
+                if (!this.audioCtx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.audioCtx = new AudioContext();
+                }
+                if (this.audioCtx.state === 'suspended') {
+                    this.audioCtx.resume();
+                }
+            }
+
+            playRingtone() {
+                if (!this.soundEnabled) return;
+                this.init();
+                const now = this.audioCtx.currentTime;
+                const notes = [523.25, 659.25, 783.99, 1046.50, 783.99, 1046.50];
+                const times = [0, 0.15, 0.3, 0.45, 0.7, 0.85];
+
+                notes.forEach((freq, idx) => {
+                    const osc = this.audioCtx.createOscillator();
+                    const gain = this.audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now + times[idx]);
+                    gain.gain.setValueAtTime(0.3, now + times[idx]);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + times[idx] + 0.3);
+                    osc.connect(gain);
+                    gain.connect(this.audioCtx.destination);
+                    osc.start(now + times[idx]);
+                    osc.stop(now + times[idx] + 0.35);
+                });
+            }
+
+            playChime() {
+                if (!this.soundEnabled) return;
+                this.init();
+                const now = this.audioCtx.currentTime;
+                const osc = this.audioCtx.createOscillator();
+                const gain = this.audioCtx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(880, now);
+                osc.frequency.exponentialRampToValueAtTime(440, now + 0.4);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+                osc.connect(gain);
+                gain.connect(this.audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.4);
+            }
+        }
+
+        const soundFx = new SoundEffects();
+    </script>
+
+    <!-- Modal Login Screen -->
+    <div id="loginModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-8 shadow-2xl border border-amber-200 text-slate-800">
+            <div class="text-center space-y-3 mb-6">
+                <div class="w-20 h-20 bg-amber-500/10 border-2 border-amber-500 rounded-full flex items-center justify-center text-amber-600 text-3xl mx-auto shadow-sm">
+                    <i class="fa-solid fa-masks-theater"></i>
+                </div>
+                <h2 class="moul text-xl text-red-900">ចូលប្រើប្រាស់ប្រព័ន្ធ</h2>
+                <p class="text-xs text-slate-500">ក្លឹបសិល្បៈវប្បធម៌ - គ្រប់គ្រងការហាត់សម និងវត្តមាន</p>
+            </div>
+
+            <form onsubmit="handleLogin(event)" class="space-y-4">
+                <div id="loginError" class="hidden bg-red-50 text-red-700 text-xs p-3 rounded-xl border border-red-200 font-bold text-center">
+                    ឈ្មោះគណនី ឬលេខសម្ងាត់មិនត្រឹមត្រូវទេ!
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5">ឈ្មោះគណនី (Username)</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                            <i class="fa-solid fa-user text-sm"></i>
+                        </span>
+                        <input type="text" id="loginUsername" placeholder="បញ្ជូល Username" required 
+                            class="w-full pl-9 pr-3 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:bg-white focus:outline-none text-slate-800 font-semibold">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5">លេខសម្ងាត់ (Password)</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                            <i class="fa-solid fa-lock text-sm"></i>
+                        </span>
+                        <input type="password" id="loginPassword" placeholder="••••••••" required 
+                            class="w-full pl-9 pr-3 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:bg-white focus:outline-none text-slate-800 font-semibold">
+                    </div>
+                </div>
+
+                <button type="submit" class="w-full bg-gradient-to-r from-red-900 to-amber-700 hover:from-red-950 hover:to-amber-800 text-white font-bold py-3 rounded-xl shadow-lg transition duration-200 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-right-to-bracket"></i>
+                    <span>ចូលប្រព័ន្ធ</span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Application Area -->
+    <div id="appArea" class="hidden flex-col min-h-screen">
+        <!-- Navigation / Header -->
+        <header class="bg-gradient-to-r from-red-900 via-red-800 to-amber-900 text-white shadow-lg sticky top-0 z-40">
+            <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center space-x-3">
+                    <div class="w-11 h-11 bg-amber-500/20 border-2 border-amber-400 rounded-full flex items-center justify-center text-amber-300 text-xl shadow-inner">
+                        <i class="fa-solid fa-masks-theater"></i>
+                    </div>
+                    <div>
+                        <h1 class="moul text-base sm:text-lg text-amber-300 leading-tight">ក្លឹបសិល្បៈវប្បធម៌</h1>
+                        <p class="text-[11px] text-amber-100/90">ប្រព័ន្ធជូនដំណឹងហាត់សម និងគ្រប់គ្រងវត្តមាន</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3 ml-auto">
+                    <button id="soundToggleBtn" onclick="toggleSound()" class="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-amber-200 text-xs transition flex items-center gap-1.5" title="បើក/បិទ សំឡេង">
+                        <i id="soundIcon" class="fa-solid fa-volume-high"></i>
+                        <span class="hidden md:inline">សំឡេង</span>
+                    </button>
+
+                    <div class="flex items-center gap-2.5 bg-white/10 border border-amber-400/30 rounded-xl p-1.5 px-3">
+                        <div id="userAvatarContainer"></div>
+
+                        <div class="text-left">
+                            <div id="userName" class="text-xs font-bold text-amber-200 leading-none">...</div>
+                            <div id="userRoleBadge" class="text-[10px] text-white bg-amber-600/80 px-1.5 py-0.5 rounded-full inline-block mt-0.5 font-medium">...</div>
+                        </div>
+                        <button onclick="handleLogout()" class="ml-2 text-xs bg-red-600/80 hover:bg-red-700 text-white p-1.5 rounded-lg transition" title="ចាកចេញពីគណនី">
+                            <i class="fa-solid fa-right-from-bracket"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="max-w-7xl mx-auto px-4 py-6 flex-1 w-full grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            <!-- Left Column: Notification Banner & Forms -->
+            <div class="lg:col-span-2 space-y-6">
+
+                <!-- 📢 ផ្ទាំង Banner ជូនដំណឹងសំខាន់ (Sync បង្ហាញដល់គ្រប់ទូរស័ព្ទ/គណនី) -->
+                <div id="announcementBanner" class="bg-white rounded-2xl shadow-lg border-2 border-amber-400 p-6 transition-all duration-300 relative overflow-hidden hidden">
+                    <div class="flex items-center justify-between border-b border-amber-100 pb-3 mb-4">
+                        <div class="flex items-center gap-2">
+                            <span class="relative flex h-3 w-3">
+                              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                              <span class="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
+                            </span>
+                            <h3 class="font-bold text-sm text-amber-900 uppercase tracking-wider">សារជូនដំណឹងហាត់សមថ្មីចុងក្រោយ</h3>
+                        </div>
+                        <div id="bannerStatusBadge"></div>
+                    </div>
+
+                    <!-- ព័ត៌មានអ្នកផ្ញើប្រកាស -->
+                    <div class="flex items-center gap-3 bg-amber-50/80 border border-amber-200/80 p-3 rounded-xl mb-4">
+                        <img id="bannerSenderAvatar" src="" class="w-12 h-12 rounded-full object-cover border-2 border-amber-400 shadow-sm" alt="Sender Avatar">
+                        <div>
+                            <div id="bannerSenderName" class="font-bold text-slate-800 text-sm">...</div>
+                            <div id="bannerSenderRole" class="text-xs text-amber-800 font-semibold">...</div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-50 p-3.5 rounded-xl border border-slate-200 text-xs mb-4">
+                        <div>
+                            <span class="text-slate-500 block font-bold">កាលបរិច្ឆេទ៖</span>
+                            <span id="bannerDate" class="font-extrabold text-slate-800 text-sm">-</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-500 block font-bold">ម៉ោងហាត់សម៖</span>
+                            <span id="bannerTime" class="font-extrabold text-slate-800 text-sm">-</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-500 block font-bold">ទីតាំង៖</span>
+                            <span id="bannerLocation" class="font-extrabold text-slate-800 text-sm">-</span>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <span class="text-xs font-bold text-slate-500 block mb-1">សារ/កំណត់សម្គាល់៖</span>
+                        <p id="bannerNote" class="text-sm font-semibold text-slate-800 bg-amber-50/40 border border-amber-100 p-3 rounded-xl leading-relaxed">
+                            -
+                        </p>
+                    </div>
+
+                    <div class="flex items-center justify-between text-xs text-slate-500 border-t border-slate-100 pt-3">
+                        <span class="font-medium text-slate-400">ប្រព័ន្ធព័ត៌មានក្លឹបសិល្បៈ</span>
+                        <span id="bannerTimestamp" class="font-medium text-slate-500">-</span>
+                    </div>
+                </div>
+
+                <!-- ADMIN/LEADER PANEL: Post Announcement -->
+                <div id="adminPanel" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 hidden">
+                    <div class="flex items-center gap-2 mb-4 text-red-900 border-b border-slate-100 pb-3">
+                        <i class="fa-solid fa-bullhorn text-xl text-amber-600"></i>
+                        <h2 class="font-bold text-base text-slate-800">ផ្ញើព័ត៌មានហាត់សមថ្មី (សម្រាប់គ្រូ និងគណៈកម្មការ)</h2>
+                    </div>
+
+                    <form id="announcementForm" onsubmit="handleSendAnnouncement(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1.5">ស្ថានភាពហាត់សម *</label>
+                            <div class="grid grid-cols-3 gap-3">
+                                <label class="cursor-pointer border-2 border-slate-200 rounded-xl p-3 text-center flex flex-col items-center gap-1 hover:border-emerald-500 transition has-[:checked]:border-emerald-600 has-[:checked]:bg-emerald-50">
+                                    <input type="radio" name="practiceStatus" value="HAS_PRACTICE" checked class="hidden">
+                                    <i class="fa-solid fa-circle-check text-emerald-600 text-lg"></i>
+                                    <span class="text-xs font-bold text-emerald-900">មានហាត់</span>
+                                </label>
+                                <label class="cursor-pointer border-2 border-slate-200 rounded-xl p-3 text-center flex flex-col items-center gap-1 hover:border-red-500 transition has-[:checked]:border-red-600 has-[:checked]:bg-red-50">
+                                    <input type="radio" name="practiceStatus" value="NO_PRACTICE" class="hidden">
+                                    <i class="fa-solid fa-circle-xmark text-red-600 text-lg"></i>
+                                    <span class="text-xs font-bold text-red-900">សម្រាក</span>
+                                </label>
+                                <label class="cursor-pointer border-2 border-slate-200 rounded-xl p-3 text-center flex flex-col items-center gap-1 hover:border-blue-500 transition has-[:checked]:border-blue-600 has-[:checked]:bg-blue-50">
+                                    <input type="radio" name="practiceStatus" value="SPECIAL" class="hidden">
+                                    <i class="fa-solid fa-star text-blue-600 text-lg"></i>
+                                    <span class="text-xs font-bold text-blue-900">កាលវិភាគពិសេស</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">កាលបរិច្ឆេទ *</label>
+                                <input type="date" id="inputDate" required class="w-full text-sm font-semibold p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-amber-500 focus:outline-none text-slate-800">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">ម៉ោងហាត់សម *</label>
+                                <input type="text" id="inputTime" placeholder="ឧ. ១៤:០០ - ១៧:០០ រសៀល" required class="w-full text-sm font-semibold p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-amber-500 focus:outline-none text-slate-800">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">ទីតាំង *</label>
+                            <input type="text" id="inputLocation" placeholder="ឧ. បន្ទប់តន្ត្រីបុរាណ អាគារ B" required class="w-full text-sm font-semibold p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-amber-500 focus:outline-none text-slate-800">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">សារបន្ថែម / ការណែនាំ</label>
+                            <textarea id="inputNote" rows="3" placeholder="សូមយកឧបករណ៍ និងសម្លៀកបំពាក់មកឲ្យបានគ្រប់ៗគ្នា..." class="w-full text-sm font-semibold p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-amber-500 focus:outline-none text-slate-800"></textarea>
+                        </div>
+
+                        <button type="submit" class="w-full bg-gradient-to-r from-red-800 to-amber-700 hover:from-red-900 hover:to-amber-800 text-white font-bold py-3 px-4 rounded-xl shadow-md transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-paper-plane"></i>
+                            <span>ផ្សព្វផ្សាយព័ត៌មាន (រោទ៍ដំណឹងទៅគ្រប់គ្នា)</span>
+                        </button>
+                    </form>
+                </div>
+
+                <!-- MEMBER PANEL: Submit Leave Request -->
+                <div id="memberPanel" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 hidden">
+                    <div class="flex items-center gap-2 mb-4 text-amber-900 border-b border-slate-100 pb-3">
+                        <i class="fa-solid fa-envelope-open-text text-xl text-amber-600"></i>
+                        <h2 class="font-bold text-base text-slate-800">ទម្រង់សុំច្បាប់ឈប់សម្រាក (សម្រាប់សមាជិក)</h2>
+                    </div>
+
+                    <form id="leaveRequestForm" onsubmit="handleSendLeaveRequest(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">កាលបរិច្ឆេទសុំច្បាប់ *</label>
+                            <input type="date" id="leaveDate" required class="w-full text-sm font-semibold p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-amber-500 focus:outline-none text-slate-800">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">មូលហេតុនៃការសុំច្បាប់ *</label>
+                            <textarea id="leaveReason" rows="3" placeholder="ឧ. មានធុរៈគ្រួសារចាំបាច់ / រវល់ប្រឡងនៅសាលា..." required class="w-full text-sm font-semibold p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-amber-500 focus:outline-none text-slate-800"></textarea>
+                        </div>
+
+                        <button type="submit" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 px-4 rounded-xl shadow transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-paper-plane"></i>
+                            <span>ផ្ញើពាក្យសុំច្បាប់ទៅលោកគ្រូ និងប្រធាន</span>
+                        </button>
+                    </form>
+                </div>
+
+            </div>
+
+            <!-- Right Column: Leave Requests Management -->
+            <div class="space-y-6">
+
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                    <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+                        <h3 class="font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-id-card-clip text-amber-600"></i>
+                            បញ្ជីសំណើសុំច្បាប់
+                        </h3>
+                        <span id="pendingLeaveBadge" class="text-xs bg-amber-100 text-amber-900 px-2.5 py-0.5 rounded-full font-bold">0 សំណើ</span>
+                    </div>
+
+                    <div id="leaveRequestsList" class="space-y-3 max-h-[500px] overflow-y-auto pr-1"></div>
+                </div>
+
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toastNotification" class="fixed bottom-5 right-5 max-w-md w-full bg-slate-900 text-white rounded-2xl p-4 shadow-2xl border border-amber-500/40 transform translate-y-24 opacity-0 transition-all duration-300 z-50 flex items-start gap-3 pointer-events-none">
+        <div id="toastIcon" class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0 text-lg">
+            <i class="fa-solid fa-bell"></i>
+        </div>
+        <div class="flex-1">
+            <h4 id="toastTitle" class="font-bold text-amber-300 text-sm">ការជូនដំណឹង!</h4>
+            <p id="toastBody" class="text-xs text-slate-200 mt-0.5 leading-relaxed">...</p>
+        </div>
+    </div>
+
+    <script>
+        // 🌐 Cloud Realtime Database Engine Endpoint (ប្រើប្រាស់ Server ប្រព័ន្ធឥតគិតថ្លៃសម្រាប់ធ្វើការ Sync ភ្លាមៗ)
+        const CLOUD_DB_URL = "https://ac-pad-ngs-default-rtdb.asia-southeast1.firebasedatabase.app";
+        const ACCOUNTS = [
+            { id: 'usr_1', username: 'teacher', password: '123', name: 'លោកគ្រូ សុខ ចាន់ថា', role: 'TEACHER', title: 'គ្រូដឹកនាំក្លឹប', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80', canPost: true },
+            { id: 'usr_2', username: 'leader', password: '123', name: 'កញ្ញា រ៉ានី សុភ័ក្រ', role: 'PRESIDENT', title: 'ប្រធានក្លឹប', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80', canPost: true },
+            { id: 'usr_3', username: 'member', password: '123', name: 'សុខ ពិសិដ្ឋ', role: 'MEMBER', title: 'សមាជិក (តន្ត្រី)', avatar: '', canPost: false },
+        ];
+
+        let currentUser = null;
+        let latestAnnouncement = null;
+        let leaveRequests = [];
+        let eventSource = null;
+
+        window.addEventListener('DOMContentLoaded', () => {
+            checkAutoLogin();
+            setupDefaultDates();
+            startCloudRealtimeSync(); // ចាប់ផ្តើមការស្តាប់ដំណឹង Realtime
+            requestNotificationPermission();
+
+            document.body.addEventListener('touchstart', () => soundFx.init(), { once: true });
+            document.body.addEventListener('click', () => soundFx.init(), { once: true });
+        });
+
+       // 1. ប្រព័ន្ធស្តាប់ព័ត៌មាន Real-time (EventSource HTTP Stream) Sync ទៅគ្រប់ទូរស័ព្ទ
+function startCloudRealtimeSync() {
+    if (eventSource) eventSource.close();
+
+    try {
+        // បន្ថែម /.json ទៅកាន់ URL របស់ Firebase
+        eventSource = new EventSource(${CLOUD_DB_URL}/.json);
+
+        eventSource.addEventListener('put', (event) => {
+            const parsed = JSON.parse(event.data);
+            if (!parsed) return;
+
+            const path = parsed.path;
+            const data = parsed.data;
+
+            // ករណី Sync ទិន្នន័យដំបូង ឬមានការផ្លាស់ប្តូរទិន្នន័យសរុប (Path "/")
+            if (path === "/") {
+                if (data && data.latest_announcement) {
+                    processAnnouncementSync(data.latest_announcement);
+                }
+                if (data && data.leave_requests) {
+                    processLeaveRequestsSync(data.leave_requests);
+                }
+            } 
+            // ករណីមានការ update លើដំណឹងហាត់សមចុងក្រោយ (Path "/latest_announcement")
+            else if (path === "/latest_announcement") {
+                if (data) processAnnouncementSync(data);
+            } 
+            // ករណីមានការ update លើសំណើសុំច្បាប់ (Path "/leave_requests")
+            else if (path === "/leave_requests") {
+                if (data) processLeaveRequestsSync(data);
+            }
+        });
+
+        eventSource.onerror = () => {
+            // ប្រសិនបើដាច់ Connection ឱ្យដកឃ្លា ២ វិនាទី រួច Reconnect ស្វ័យប្រវត្តិ
+            setTimeout(startCloudRealtimeSync, 2000);
+        };
+    } catch (err) {
+        console.log("Cloud Realtime Sync Error:", err);
+    }
+}
+
+// អនុគមន៍ជំនួយសម្រាប់ Sync ដំណឹង
+function processAnnouncementSync(newAnn) {
+    if (!latestAnnouncement || latestAnnouncement.id !== newAnn.id) {
+        latestAnnouncement = newAnn;
+        renderBanner();
+        soundFx.playRingtone();
+        showNotificationOnMobile(newAnn.senderName, newAnn.note || 'មានការប្រកាសហាត់សមថ្មី!');
+
+        const banner = document.getElementById('announcementBanner');
+        if (banner) {
+            banner.classList.add('alert-active');
+            setTimeout(() => banner.classList.remove('alert-active'), 3000);
+        }
+
+        showToast('ដំណឹងហាត់សមថ្មី!', ប្រកាសដោយ៖ ${newAnn.senderName});
+    }
+}
+
+// អនុគមន៍ជំនួយសម្រាប់ Sync ពាក្យសុំច្បាប់
+function processLeaveRequestsSync(rawLeaveData) {
+    leaveRequests = [];
+    if (rawLeaveData) {
+        Object.keys(rawLeaveData).forEach(key => {
+            leaveRequests.unshift({ id: key, ...rawLeaveData[key] });
+        });
+    }
+    renderLeaveRequests();
+}
+
+                    // ឆែកមើលពាក្យសុំច្បាប់
+                    if (rootData.leave_requests) {
+                        leaveRequests = [];
+                        Object.keys(rootData.leave_requests).forEach(key => {
+                            leaveRequests.unshift({ id: key, ...rootData.leave_requests[key] });
+                        });
+                        renderLeaveRequests();
+                    }
+                };
+
+                eventSource.onerror = () => {
+                    // ប្រសិនបើដាច់ Connection ឱ្យដកឃ្លា ២ វិនាទី រួច Reconnect ស្វ័យប្រវត្តិ
+                    setTimeout(startCloudRealtimeSync, 2000);
+                };
+            } catch (err) {
+                console.log("Cloud Realtime Sync Error:", err);
+            }
+        }
+
+        // 2. សុំការអនុញ្ញាតបង្ហាញ Notification លើរបារទូរស័ព្ទ
+        function requestNotificationPermission() {
+            if ('Notification' in window && Notification.permission !== 'granted') {
+                Notification.requestPermission();
+            }
+        }
+
+        function showNotificationOnMobile(sender, message) {
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification(`សារថ្មីពី ${sender}`, {
+                    body: message,
+                    icon: 'https://cdn-icons-png.flaticon.com/512/3172/3172551.png'
+                });
+            }
+        }
+
+        function checkAutoLogin() {
+            const savedUser = localStorage.getItem('artclub_logged_user');
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                showAppArea();
+            } else {
+                showLoginModal();
+            }
+        }
+
+        function handleLogin(e) {
+            e.preventDefault();
+            soundFx.init();
+            const uInput = document.getElementById('loginUsername').value.trim();
+            const pInput = document.getElementById('loginPassword').value.trim();
+            const errBox = document.getElementById('loginError');
+
+            const foundUser = ACCOUNTS.find(acc => acc.username.toLowerCase() === uInput.toLowerCase() && acc.password === pInput);
+
+            if (foundUser) {
+                errBox.classList.add('hidden');
+                currentUser = foundUser;
+                localStorage.setItem('artclub_logged_user', JSON.stringify(currentUser));
+                showAppArea();
+                soundFx.playChime();
+                showToast('ស្វាគមន៍!', `បានចូលប្រើប្រាស់ជោគជ័យជា ${currentUser.name}`);
+            } else {
+                errBox.classList.remove('hidden');
+            }
+        }
+
+        function handleLogout() {
+            localStorage.removeItem('artclub_logged_user');
+            currentUser = null;
+            showLoginModal();
+        }
+
+        function showLoginModal() {
+            document.getElementById('loginModal').classList.remove('hidden');
+            document.getElementById('appArea').classList.add('hidden');
+            document.getElementById('appArea').classList.remove('flex');
+        }
+
+        function showAppArea() {
+            document.getElementById('loginModal').classList.add('hidden');
+            document.getElementById('appArea').classList.remove('hidden');
+            document.getElementById('appArea').classList.add('flex');
+
+            document.getElementById('userName').innerText = currentUser.name;
+            document.getElementById('userRoleBadge').innerText = currentUser.title;
+
+            const avatarContainer = document.getElementById('userAvatarContainer');
+            if (currentUser.canPost && currentUser.avatar) {
+                avatarContainer.innerHTML = `<img src="${currentUser.avatar}" class="w-8 h-8 rounded-full border border-amber-300 object-cover" alt="Avatar">`;
+            } else {
+                avatarContainer.innerHTML = `<div class="w-8 h-8 rounded-full bg-amber-500/30 border border-amber-300 flex items-center justify-center text-amber-200 text-xs"><i class="fa-solid fa-user"></i></div>`;
+            }
+
+            const adminPanel = document.getElementById('adminPanel');
+            const memberPanel = document.getElementById('memberPanel');
+
+            if (currentUser.canPost) {
+                adminPanel.classList.remove('hidden');
+                memberPanel.classList.add('hidden');
+            } else {
+                adminPanel.classList.add('hidden');
+                memberPanel.classList.remove('hidden');
+            }
+
+            renderLeaveRequests();
+            renderBanner();
+        }
+
+        function toggleSound() {
+            soundFx.init();
+            soundFx.soundEnabled = !soundFx.soundEnabled;
+            const icon = document.getElementById('soundIcon');
+            icon.className = soundFx.soundEnabled ? 'fa-solid fa-volume-high' : 'fa-solid fa-volume-xmark';
+            showToast('សំឡេងដំណឹង', soundFx.soundEnabled ? 'បានបើកសំឡេង' : 'បានបិទសំឡេង');
+        }
+
+        function setupDefaultDates() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('inputDate').value = today;
+            document.getElementById('leaveDate').value = today;
+        }
+
+        function renderBanner() {
+            const banner = document.getElementById('announcementBanner');
+            if (!latestAnnouncement) {
+                banner.classList.add('hidden');
+                return;
+            }
+
+            banner.classList.remove('hidden');
+
+            const badgeContainer = document.getElementById('bannerStatusBadge');
+            if (latestAnnouncement.status === 'HAS_PRACTICE') {
+                badgeContainer.innerHTML = `<span class="bg-emerald-100 text-emerald-900 border border-emerald-300 text-xs font-extrabold px-3 py-1 rounded-full"><i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i>មានហាត់សម</span>`;
+            } else if (latestAnnouncement.status === 'NO_PRACTICE') {
+                badgeContainer.innerHTML = `<span class="bg-red-100 text-red-900 border border-red-300 text-xs font-extrabold px-3 py-1 rounded-full"><i class="fa-solid fa-circle-xmark text-red-600 mr-1"></i>សម្រាកហាត់សម</span>`;
+            } else {
+                badgeContainer.innerHTML = `<span class="bg-blue-100 text-blue-900 border border-blue-300 text-xs font-extrabold px-3 py-1 rounded-full"><i class="fa-solid fa-star text-blue-600 mr-1"></i>កាលវិភាគពិសេស</span>`;
+            }
+
+            document.getElementById('bannerSenderAvatar').src = latestAnnouncement.senderAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80';
+            document.getElementById('bannerSenderName').innerText = latestAnnouncement.senderName;
+            document.getElementById('bannerSenderRole').innerText = latestAnnouncement.senderRole;
+
+            document.getElementById('bannerDate').innerText = latestAnnouncement.date;
+            document.getElementById('bannerTime').innerText = latestAnnouncement.time;
+            document.getElementById('bannerLocation').innerText = latestAnnouncement.location;
+            document.getElementById('bannerNote').innerText = latestAnnouncement.note || 'គ្មានកំណត់សម្គាល់បន្ថែម';
+            document.getElementById('bannerTimestamp').innerText = latestAnnouncement.timestamp;
+        }
+
+        // 3. ផ្ញើព័ត៌មានហាត់សមទៅកាន់ Cloud Server (Sync ភ្លាមៗទៅកាន់គ្រប់គណនី)
+        async function handleSendAnnouncement(e) {
+            e.preventDefault();
+            soundFx.init();
+
+            const status = document.querySelector('input[name="practiceStatus"]:checked').value;
+            const date = document.getElementById('inputDate').value;
+            const time = document.getElementById('inputTime').value;
+            const location = document.getElementById('inputLocation').value;
+            const note = document.getElementById('inputNote').value;
+
+            const newAnn = {
+                id: 'ann_' + Date.now(),
+                status, date, time, location, note,
+                senderName: currentUser.name,
+                senderRole: currentUser.title,
+                senderAvatar: currentUser.avatar,
+                timestamp: new Date().toLocaleTimeString('km-KH', { hour: '2-digit', minute: '2-digit' })
+            };
+
+            try {
+                // ផ្ញើទៅកាន់ Cloud Server ដោយប្រើ HTTP PUT REST API
+                await fetch(`${CLOUD_DB_URL}/latest_announcement.json`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newAnn)
+                });
+                showToast('បានផ្ញើដំណឹង!', 'ព័ត៌មានត្រូវបាន Sync បង្ហាញនៅលើ Banner ទៅកាន់ទូរស័ព្ទគ្រប់គ្នា។');
+            } catch (err) {
+                showToast('មានបញ្ហា!', 'មិនអាចភ្ជាប់ទៅកាន់ប្រព័ន្ធ Server បានទេ។');
+            }
+        }
+
+        // 4. ផ្ញើសំណើសុំច្បាប់ទៅកាន់ Cloud Server
+        async function handleSendLeaveRequest(e) {
+            e.preventDefault();
+            soundFx.init();
+
+            const date = document.getElementById('leaveDate').value;
+            const reason = document.getElementById('leaveReason').value;
+
+            const newLeave = {
+                userId: currentUser.id,
+                userName: currentUser.name,
+                userTitle: currentUser.title,
+                date, reason,
+                status: 'PENDING',
+                timestamp: new Date().toLocaleTimeString('km-KH', { hour: '2-digit', minute: '2-digit' })
+            };
+
+            try {
+                await fetch(`${CLOUD_DB_URL}/leave_requests.json`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newLeave)
+                });
+                soundFx.playChime();
+                document.getElementById('leaveReason').value = '';
+                showToast('បានផ្ញើពាក្យសុំច្បាប់!', 'សំណើត្រូវបានបញ្ជូនទៅប្រព័ន្ធគ្រប់គ្រង។');
+            } catch (err) {
+                showToast('មានបញ្ហា!', 'មិនអាចផ្ញើសំណើបានទេ។');
+            }
+        }
+
+        // 5. អនុញ្ញាត/បដិសេធ សុំច្បាប់
+        async function handleLeaveStatus(leaveId, newStatus) {
+            soundFx.init();
+            try {
+                await fetch(`${CLOUD_DB_URL}/leave_requests/${leaveId}.json`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: newStatus })
+                });
+                soundFx.playChime();
+                const statusTxt = newStatus === 'APPROVED' ? 'យល់ព្រម' : 'បដិសេធ';
+                showToast('បច្ចុប្បន្នភាពពាក្យសុំច្បាប់', `បាន ${statusTxt} ពាក្យសុំច្បាប់រួចរាល់។`);
+            } catch (err) {
+                showToast('មានបញ្ហា!', 'មិនអាចផ្លាស់ប្តូរស្ថានភាពបានទេ។');
+            }
+        }
+
+        function renderLeaveRequests() {
+            const list = document.getElementById('leaveRequestsList');
+            const pendingBadge = document.getElementById('pendingLeaveBadge');
+
+            const pendingCount = leaveRequests.filter(l => l.status === 'PENDING').length;
+            pendingBadge.innerText = `${pendingCount} សំណើ`;
+
+            list.innerHTML = '';
+
+            if (leaveRequests.length === 0) {
+                list.innerHTML = `<div class="text-xs text-center text-slate-400 py-6 font-medium">មិនទាន់មានសំណើសុំច្បាប់នៅឡើយទេ</div>`;
+                return;
+            }
+
+            leaveRequests.forEach(leave => {
+                let statusPill = `<span class="bg-amber-100 text-amber-900 px-2 py-0.5 rounded text-[10px] font-bold">រង់ចាំពិនិត្យ</span>`;
+                if (leave.status === 'APPROVED') {
+                    statusPill = `<span class="bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded text-[10px] font-bold"><i class="fa-solid fa-check"></i> បានអនុញ្ញាត</span>`;
+                } else if (leave.status === 'REJECTED') {
+                    statusPill = `<span class="bg-red-100 text-red-900 px-2 py-0.5 rounded text-[10px] font-bold"><i class="fa-solid fa-xmark"></i> មិនអនុញ្ញាត</span>`;
+                }
+
+                const card = document.createElement('div');
+                card.className = 'p-3.5 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-2';
+                card.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <div class="w-7 h-7 rounded-full bg-amber-500/20 border border-amber-300 flex items-center justify-center text-amber-700 text-[10px]"><i class="fa-solid fa-user"></i></div>
+                            <div>
+                                <span class="font-bold text-slate-800 block leading-tight">${leave.userName}</span>
+                                <span class="text-[10px] text-slate-500 font-medium">${leave.userTitle}</span>
+                            </div>
+                        </div>
+                        ${statusPill}
+                    </div>
+                    <div class="bg-white p-2.5 rounded-lg border border-slate-200">
+                        <div class="text-[11px] font-bold text-amber-900">សុំច្បាប់ថ្ងៃ៖ ${leave.date}</div>
+                        <div class="text-slate-800 font-medium mt-1">"${leave.reason}"</div>
+                    </div>
+                    <div class="flex items-center justify-between pt-1">
+                        <span class="text-[10px] text-slate-500 font-medium">${leave.timestamp}</span>
+                        ${currentUser && currentUser.canPost && leave.status === 'PENDING' ? `
+                            <div class="flex gap-1.5">
+                                <button onclick="handleLeaveStatus('${leave.id}', 'APPROVED')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] px-2.5 py-1 rounded-lg font-bold transition">យល់ព្រម</button>
+                                <button onclick="handleLeaveStatus('${leave.id}', 'REJECTED')" class="bg-red-600 hover:bg-red-700 text-white text-[10px] px-2.5 py-1 rounded-lg font-bold transition">បដិសេធ</button>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        function showToast(title, body) {
+            const toast = document.getElementById('toastNotification');
+            document.getElementById('toastTitle').innerText = title;
+            document.getElementById('toastBody').innerText = body;
+
+            toast.classList.remove('translate-y-24', 'opacity-0', 'pointer-events-none');
+            setTimeout(() => {
+                toast.classList.add('translate-y-24', 'opacity-0', 'pointer-events-none');
+            }, 3500);
+        }
+    </script>
+</body>
+</html>
